@@ -2,42 +2,50 @@ name: HSI Daily Auto Fetcher
 
 on:
   schedule:
-    - cron: '15 9 * * 1-5'
+    - cron: '15 10 * * 1-5' # Runs at 10:15 UTC (18:15 HKT) Monday to Friday
   workflow_dispatch:
 
 jobs:
   run-script:
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      contents: write # Explicitly grants write access
     steps:
     - name: Check out repo code
-      uses: actions/checkout@v4.2.2
+      uses: actions/checkout@v4
       with:
-        fetch-depth: 0 # Fetches full history to allow clean merging
+        fetch-depth: 0
 
     - name: Set up Python
-      uses: actions/setup-python@v5.4.0
+      uses: actions/setup-python@v5
       with:
         python-version: '3.11'
 
     - name: Install Dependencies
-      # Explicitly forces pandas and openpyxl installation on the runner machine
-      run: pip install --upgrade pip yfinance pandas openpyxl
+      run: |
+        python -m pip install --upgrade pip
+        pip install yfinance pandas openpyxl
 
     - name: Fetch HSI Data
       run: python fetch_hsi.py
 
     - name: Save Excel back to Repository
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
         git config --global user.name "github-actions[bot]"
-        git config --global user.email "github-actions[bot]@://github.com"
+        git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
         
-        # FIX: Clean any stuck conflicts from previous run failures
-        git reset --hard origin/main
-        git pull --rebase origin main
+        # Pull latest changes to avoid conflicts
+        git pull origin main --rebase
         
-        # Track and commit the newly created excel file
+        # Stage only changes, check if file exists
         git add *.xlsx
-        git commit -m "Automated HSI Data Sync (with generation date)" || exit 0
-        git push origin main
+        
+        # Commit only if files changed
+        if git diff --staged --quiet; then
+          echo "No changes to commit"
+        else
+          git commit -m "Automated HSI Data Sync $(date +'%Y-%m-%d')"
+          git push origin main
+        fi
