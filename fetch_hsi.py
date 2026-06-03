@@ -4,7 +4,7 @@ from datetime import datetime
 
 def get_hsi_data():
     ticker_symbol = "^HSI"
-    start_date = "2025-01-02"
+    start_date = "2026-01-02"
     end_date = datetime.today().strftime('%Y-%m-%d')
     
     print(f"Fetching {ticker_symbol} data from {start_date} to {end_date}...")
@@ -12,8 +12,12 @@ def get_hsi_data():
     
     if not df.empty:
         df.reset_index(inplace=True)
-        output_file = "hsi_historical_data.csv"
-        df.to_csv(output_file, index=False)
+        
+        # CHANGED: Save as an Excel file (.xlsx) instead of a CSV
+        output_file = "hsi_historical_data.xlsx"
+        
+        # index=False prevents writing row numbers into the sheet
+        df.to_excel(output_file, index=False)
         print(f"Success! Data saved to {output_file}")
     else:
         print("No data retrieved.")
