@@ -2,7 +2,7 @@ name: HSI Daily Auto Fetcher
 
 on:
   schedule:
-    - cron: '15 10 * * 1-5' # Runs at 10:15 UTC (18:15 HKT) Monday to Friday
+    - cron: '16 16 * * 1-5' # Runs at 10:15 UTC (18:15 HKT) Monday to Friday
   workflow_dispatch:
 
 jobs:
