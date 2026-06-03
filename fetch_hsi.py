@@ -1,26 +1,38 @@
-import yfinance as yf
-import pandas as pd
-from datetime import datetime
+name: HSI Daily Auto Fetcher
 
-def get_hsi_data():
-    ticker_symbol = "^HSI"
-    start_date = "2026-01-02"
-    end_date = datetime.today().strftime('%Y-%m-%d')
-    
-    print(f"Fetching {ticker_symbol} data from {start_date} to {end_date}...")
-    df = yf.download(ticker_symbol, start=start_date, end=end_date, interval="1d")
-    
-    if not df.empty:
-        df.reset_index(inplace=True)
-        
-        # CHANGED: Save as an Excel file (.xlsx) instead of a CSV
-        output_file = "hsi_historical_data.xlsx"
-        
-        # index=False prevents writing row numbers into the sheet
-        df.to_excel(output_file, index=False)
-        print(f"Success! Data saved to {output_file}")
-    else:
-        print("No data retrieved.")
+on:
+  schedule:
+    - cron: '15 9 * * 1-5'
+  workflow_dispatch:
 
-if __name__ == "__main__":
-    get_hsi_data()
+jobs:
+  run-script:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+    - name: Check out repo code
+      uses: actions/checkout@v4.2.2
+
+    - name: Set up Python
+      uses: actions/setup-python@v5.4.0
+      with:
+        python-version: '3.11'
+
+    - name: Install Dependencies
+      run: pip install yfinance pandas openpyxl
+
+    - name: Fetch HSI Data
+      run: python fetch_hsi.py
+
+    - name: Save Excel back to Repository
+      run: |
+        git config --global user.name "github-actions[bot]"
+        git config --global user.email "github-actions[bot]@users.noreply.github.com"
+        git add hsi_historical_data.xlsx
+        git commit -m "Automated HSI Data Sync (Excel format)" || exit 0
+        
+        # FIX: Pull down any web changes first to prevent push rejection
+        git pull --rebase origin main
+        
+        git push origin main
