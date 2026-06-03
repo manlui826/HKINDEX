@@ -2,34 +2,42 @@ name: HSI Daily Auto Fetcher
 
 on:
   schedule:
-    # Triggers every Monday through Friday at 17:15 (5:15 PM) Hong Kong Time
     - cron: '15 9 * * 1-5'
-  workflow_dispatch: # Keeps a manual "Run" button active for testing
+  workflow_dispatch:
 
 jobs:
   run-script:
     runs-on: ubuntu-latest
     permissions:
-      contents: write # Grants the runner permission to save the CSV back to your repo
+      contents: write
     steps:
     - name: Check out repo code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v4.2.2
+      with:
+        fetch-depth: 0 # Fetches full history to allow clean merging
 
     - name: Set up Python
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@v5.4.0
       with:
         python-version: '3.11'
 
     - name: Install Dependencies
-      run: pip install yfinance pandas
+      # Explicitly forces pandas and openpyxl installation on the runner machine
+      run: pip install --upgrade pip yfinance pandas openpyxl
 
     - name: Fetch HSI Data
       run: python fetch_hsi.py
 
-    - name: Save CSV back to Repository
+    - name: Save Excel back to Repository
       run: |
         git config --global user.name "github-actions[bot]"
-        git config --global user.email "github-actions[bot]@users.noreply.github.com"
-        git add hsi_historical_data.csv
-        git commit -m "Automated HSI Data Sync" || exit 0
-        git push
+        git config --global user.email "github-actions[bot]@://github.com"
+        
+        # FIX: Clean any stuck conflicts from previous run failures
+        git reset --hard origin/main
+        git pull --rebase origin main
+        
+        # Track and commit the newly created excel file
+        git add *.xlsx
+        git commit -m "Automated HSI Data Sync (with generation date)" || exit 0
+        git push origin main
